@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Box;
+use App\Models\Invoice;
 use App\Models\Package;
 use App\Models\Shipment;
 use App\Models\User;
@@ -61,10 +62,21 @@ class DatabaseSeeder extends Seeder
             'status' => 'PENDING',
         ]);
 
+        $invoice = Invoice::firstOrCreate([
+            'po_number' => 'PO-001',
+        ], [
+            'invoice_code' => 'INV-PO-001',
+            'status' => 'terverifikasi',
+            'target_box_count' => 1,
+            'estimated_arrival_date' => now()->toDateString(),
+        ]);
+
         $box = Box::firstOrCreate([
             'box_code' => 'BOX-001',
         ], [
-            'shipment_id' => $shipment->shipment_id,
+            'invoice_id' => $invoice->invoice_id,
+            'vendor_id' => $vendor->vendor_id,
+            'qr_text' => 'BOX:BOX-001',
         ]);
 
         Package::firstOrCreate([
@@ -72,7 +84,7 @@ class DatabaseSeeder extends Seeder
         ], [
             'box_id' => $box->box_id,
             'qty' => 10,
-            'qr_text' => 'SHIP:SHIP-001|BOX:BOX-001|PKG:PKG-001',
+            'qr_text' => 'INV:PO-001|BOX:BOX-001|PKG:PKG-001',
         ]);
     }
 }

@@ -17,7 +17,10 @@ class Box extends Model
 
     protected $fillable = [
         'box_code',
-        'shipment_id',
+        'invoice_id',
+        'vendor_id',
+        'status',
+        'qr_text',
     ];
 
     protected function casts(): array
@@ -28,13 +31,28 @@ class Box extends Model
         ];
     }
 
-    public function shipment(): BelongsTo
+    public function invoice(): BelongsTo
     {
-        return $this->belongsTo(Shipment::class, 'shipment_id', 'shipment_id');
+        return $this->belongsTo(Invoice::class, 'invoice_id', 'invoice_id');
+    }
+
+    public function vendor(): BelongsTo
+    {
+        return $this->belongsTo(Vendor::class, 'vendor_id', 'vendor_id');
     }
 
     public function packages(): HasMany
     {
         return $this->hasMany(Package::class, 'box_id', 'box_id');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(BoxItem::class, 'box_id', 'box_id');
+    }
+
+    public function locations(): HasMany
+    {
+        return $this->hasMany(BoxLocation::class, 'box_id', 'box_id');
     }
 }

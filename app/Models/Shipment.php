@@ -36,11 +36,6 @@ class Shipment extends Model
         return $this->belongsTo(Vendor::class, 'vendor_id', 'vendor_id');
     }
 
-    public function boxes(): HasMany
-    {
-        return $this->hasMany(Box::class, 'shipment_id', 'shipment_id');
-    }
-
     public function locations(): HasMany
     {
         return $this->hasMany(ShipmentLocation::class, 'shipment_id', 'shipment_id');

@@ -14,11 +14,11 @@ class PackageController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = SvsPackage::with('box.shipment.vendor')->orderByDesc('package_id');
+        $query = SvsPackage::with(['box.invoice', 'box.vendor'])->orderByDesc('package_id');
         $user = $request->user();
 
         if ($user->role === 'VENDOR' && $user->vendor_id) {
-            $query->whereHas('box.shipment', fn ($shipmentQuery) => $shipmentQuery->where('vendor_id', $user->vendor_id));
+            $query->whereHas('box', fn ($boxQuery) => $boxQuery->where('vendor_id', $user->vendor_id));
         }
 
         if ($request->filled('package_code')) {
@@ -44,7 +44,7 @@ class PackageController extends Controller
             'qty' => ['required', 'integer', 'min:1'],
         ]);
 
-        $box = Box::with('shipment')->findOrFail($validated['box_id']);
+        $box = Box::with(['invoice', 'vendor'])->findOrFail($validated['box_id']);
         $this->assertBoxAccess($request->user(), $box);
 
         $package = SvsPackage::create($validated);
@@ -57,7 +57,7 @@ class PackageController extends Controller
     {
         $this->assertBoxAccess($request->user(), $package->box);
 
-        return $this->successResponse($package->load(['box.shipment.vendor', 'qrLogs', 'scanLogs', 'countingResults']));
+        return $this->successResponse($package->load(['box.invoice', 'box.vendor', 'qrLogs', 'scanLogs', 'countingResults']));
     }
 
     public function update(Request $request, SvsPackage $package): JsonResponse
@@ -68,7 +68,7 @@ class PackageController extends Controller
             'qty' => ['required', 'integer', 'min:1'],
         ]);
 
-        $box = Box::with('shipment')->findOrFail($validated['box_id']);
+        $box = Box::with(['invoice', 'vendor'])->findOrFail($validated['box_id']);
         $this->assertBoxAccess($request->user(), $box);
 
         $package->update($validated);
@@ -88,9 +88,9 @@ class PackageController extends Controller
 
     private function assertBoxAccess(User $user, Box $box): void
     {
-        $box->loadMissing('shipment');
+        $box->loadMissing('vendor');
 
-        if ($user->role === 'VENDOR' && $user->vendor_id !== $box->shipment->vendor_id) {
+        if ($user->role === 'VENDOR' && $user->vendor_id !== $box->vendor_id) {
             abort(403, 'Vendor users can only manage their own vendor packages.');
         }
     }

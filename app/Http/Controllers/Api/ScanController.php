@@ -19,7 +19,7 @@ class ScanController extends Controller
             'user_id' => ['nullable', 'exists:users,user_id'],
         ]);
 
-        $package = SvsPackage::with('box.shipment.vendor')->where('qr_text', $validated['qr_text'])->firstOrFail();
+        $package = SvsPackage::with(['box.invoice', 'box.vendor'])->where('qr_text', $validated['qr_text'])->firstOrFail();
         $actingUser = $request->user();
         $scanUserId = $validated['user_id'] ?? $actingUser?->user_id;
 
@@ -38,8 +38,8 @@ class ScanController extends Controller
                 'qr_text' => $package->qr_text,
                 'qty' => $package->qty,
                 'box_code' => $package->box->box_code,
-                'shipment_code' => $package->box->shipment->shipment_code,
-                'vendor_name' => $package->box->shipment->vendor->vendor_name,
+                'invoice_po_number' => $package->box->invoice?->po_number,
+                'vendor_name' => $package->box->vendor?->vendor_name,
             ],
             'verification' => VerificationService::package($package),
         ], 'Package scanned successfully');

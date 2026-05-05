@@ -3,16 +3,17 @@
 namespace Tests\Unit;
 
 use App\Models\Box;
+use App\Models\BoxItem;
 use App\Models\CountingResult;
+use App\Models\Invoice;
 use App\Models\Package;
-use App\Models\Shipment;
 use App\Support\VerificationService;
 use Carbon\Carbon;
 use Tests\TestCase;
 
 class VerificationServiceTest extends TestCase
 {
-    public function test_shipment_summary_computes_over_status(): void
+    public function test_invoice_summary_computes_over_status(): void
     {
         $firstPackage = new Package([
             'package_code' => 'PKG-001',
@@ -40,22 +41,40 @@ class VerificationServiceTest extends TestCase
 
         $box = new Box([
             'box_code' => 'BOX-001',
+            'qr_text' => 'BOX:BOX-001',
         ]);
         $box->setAttribute('box_id', 5);
+        $box->setRelation('items', collect([
+            new BoxItem([
+                'item_name' => 'Item A',
+                'quantity' => 5,
+            ]),
+            new BoxItem([
+                'item_name' => 'Item B',
+                'quantity' => 2,
+            ]),
+        ]));
         $box->setRelation('packages', collect([$firstPackage, $secondPackage]));
 
-        $shipment = new Shipment([
-            'shipment_code' => 'SHP-001',
+        $invoice = new Invoice([
+            'invoice_code' => 'INV-PO-001',
+            'po_number' => 'PO-001',
+            'status' => 'terverifikasi',
+            'target_box_count' => 1,
         ]);
-        $shipment->setAttribute('shipment_id', 1);
-        $shipment->setRelation('boxes', collect([$box]));
+        $invoice->setAttribute('invoice_id', 1);
+        $invoice->setRelation('boxes', collect([$box]));
 
-        $summary = VerificationService::shipment($shipment);
+        $summary = VerificationService::invoice($invoice);
 
         $this->assertSame([
-            'shipment_id' => 1,
-            'shipment_code' => 'SHP-001',
+            'invoice_id' => 1,
+            'invoice_code' => 'INV-PO-001',
+            'po_number' => 'PO-001',
+            'status' => 'terverifikasi',
+            'target_box_count' => 1,
             'total_boxes' => 1,
+            'total_items' => 2,
             'total_packages' => 2,
             'total_qty' => 7,
             'total_counted' => 10,

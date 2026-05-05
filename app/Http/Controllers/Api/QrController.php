@@ -26,11 +26,12 @@ class QrController extends Controller
             ], 422);
         }
 
-        $package->loadMissing('box.shipment');
+        $package->loadMissing('box.invoice');
+        $invoiceReference = $package->box->invoice?->po_number ?? 'NO-INVOICE';
 
         $qrText = sprintf(
-            'SHIP:%s|BOX:%s|PKG:%s',
-            $package->box->shipment->shipment_code,
+            'INV:%s|BOX:%s|PKG:%s',
+            $invoiceReference,
             $package->box->box_code,
             $package->package_code
         );
@@ -53,9 +54,9 @@ class QrController extends Controller
 
     private function assertPackageAccess(User $user, SvsPackage $package): void
     {
-        $package->loadMissing('box.shipment');
+        $package->loadMissing('box.vendor');
 
-        if ($user->role === 'VENDOR' && $user->vendor_id !== $package->box->shipment->vendor_id) {
+        if ($user->role === 'VENDOR' && $user->vendor_id !== $package->box->vendor_id) {
             abort(403, 'Vendor users can only generate QR codes for their own packages.');
         }
     }

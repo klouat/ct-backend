@@ -59,7 +59,7 @@ class ShipmentController extends Controller
     {
         $this->assertShipmentAccess($request->user(), $shipment);
 
-        return $this->successResponse($shipment->load(['vendor', 'boxes']));
+        return $this->successResponse($shipment->load('vendor'));
     }
 
     public function update(Request $request, Shipment $shipment): JsonResponse
