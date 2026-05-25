@@ -25,6 +25,7 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'username' => ['required', 'string', 'max:50', 'unique:users,username'],
+            'email' => ['required', 'string', 'email', 'max:150', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
             'role' => ['required', 'in:ADMIN,OPERATOR,VENDOR,DRIVER'],
             'vendor_id' => ['nullable', 'exists:vendors,vendor_id'],
@@ -32,6 +33,7 @@ class AuthController extends Controller
 
         $user = User::create([
             'username' => $validated['username'],
+            'email' => $validated['email'],
             'password_hash' => Hash::make($validated['password']),
             'role' => $validated['role'],
             'vendor_id' => $validated['vendor_id'] ?? null,
@@ -61,11 +63,18 @@ class AuthController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (! $token = auth('api')->attempt($credentials)) {
+        $identifier = trim((string) $credentials['username']);
+        $user = User::where('username', $identifier)
+            ->orWhere('email', $identifier)
+            ->first();
+
+        if (! $user || ! Hash::check($credentials['password'], $user->password_hash)) {
             return $this->errorResponse('Invalid credentials', [
                 'username' => ['The provided credentials are incorrect.'],
             ], 401);
         }
+
+        $token = auth('api')->login($user);
 
         return $this->tokenResponse($token, 'Login successful');
     }
@@ -109,6 +118,7 @@ class AuthController extends Controller
         return [
             'user_id' => $user->user_id,
             'username' => $user->username,
+            'email' => $user->email,
             'role' => $user->role,
             'vendor_id' => $user->vendor_id,
             'created_at' => $user->created_at,

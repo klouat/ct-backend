@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\BoxItem;
+use App\Models\Invoice;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,29 +12,30 @@ class HistoryController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $query = BoxItem::with([
-            'box.locations',
-            'box.packages.countingResults',
-        ])->orderByDesc('box_item_id');
+        $query = Invoice::with([
+            'vendor',
+            'boxes.locations',
+        ])->orderByDesc('invoice_id');
 
         if ($user->role === 'VENDOR' && $user->vendor_id) {
-            $query->whereHas('box', fn ($boxQuery) => $boxQuery->where('vendor_id', $user->vendor_id));
+            $query->where('vendor_id', $user->vendor_id);
         }
 
         if ($request->filled('search')) {
             $search = trim((string) $request->string('search'));
 
-            $query->where(function ($boxItemQuery) use ($search) {
-                $boxItemQuery
-                    ->where('sku', 'like', '%'.$search.'%')
-                    ->orWhere('item_name', 'like', '%'.$search.'%');
+            $query->where(function ($invoiceQuery) use ($search) {
+                $invoiceQuery
+                    ->where('invoice_code', 'like', '%'.$search.'%')
+                    ->orWhere('product_id', 'like', '%'.$search.'%')
+                    ->orWhere('product_name', 'like', '%'.$search.'%');
             });
         }
 
         $items = $query->paginate($this->perPage($request));
 
         return $this->successResponse([
-            'items' => $items->getCollection()->map(fn (BoxItem $boxItem) => $this->transformItem($boxItem))->all(),
+            'items' => $items->getCollection()->map(fn (Invoice $invoice) => $this->transformItem($invoice))->all(),
             'pagination' => [
                 'current_page' => $items->currentPage(),
                 'per_page' => $items->perPage(),
@@ -44,30 +45,31 @@ class HistoryController extends Controller
         ]);
     }
 
-    private function transformItem(BoxItem $boxItem): array
+    private function transformItem(Invoice $invoice): array
     {
-        $boxItem->loadMissing([
-            'box.locations',
+        $invoice->loadMissing([
+            'vendor',
+            'boxes.locations',
         ]);
 
-        $latestLocation = $boxItem->box?->locations
+        $latestLocation = $invoice->boxes
+            ->flatMap(fn ($box) => $box->locations)
             ->sortByDesc('recorded_at')
             ->first();
-
-        $status = strtoupper((string) ($boxItem->box?->status ?? 'pending'));
+        $status = strtoupper((string) ($invoice->status ?? 'not_scanned'));
 
         return [
-            'box_item_id' => $boxItem->box_item_id,
-            'sku' => $boxItem->sku,
-            'item_name' => $boxItem->item_name,
-            'quantity' => (int) $boxItem->quantity,
+            'invoice_id' => $invoice->invoice_id,
+            'invoice_code' => $invoice->invoice_code,
+            'product_id' => $invoice->product_id,
+            'product_name' => $invoice->product_name,
+            'quantity' => (int) $invoice->target_box_count,
+            'box_quantity' => (int) $invoice->target_box_count,
+            'scanned_box_count' => (int) $invoice->scanned_box_count,
             'location' => $latestLocation?->location_name,
             'status' => $status,
-            'box' => [
-                'box_id' => $boxItem->box?->box_id,
-                'box_code' => $boxItem->box?->box_code,
-                'qr_text' => $boxItem->box?->qr_text,
-            ],
+            'vendor_name' => $invoice->vendor?->vendor_name,
+            'qr_text' => $invoice->qr_text,
             'recorded_at' => $latestLocation?->recorded_at,
         ];
     }

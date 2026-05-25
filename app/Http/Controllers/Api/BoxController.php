@@ -45,7 +45,7 @@ class BoxController extends Controller
             'invoice_id' => ['required', 'exists:invoices,invoice_id'],
             'vendor_id' => ['nullable', 'exists:vendors,vendor_id'],
             'vendor_name' => ['nullable', 'string', 'max:100'],
-            'status' => ['nullable', 'string', 'in:done,pending,match,less,mismatch,over'],
+            'status' => ['nullable', 'string', 'in:done,pending,not_scanned,match,less,mismatch,over'],
         ]);
 
         $invoice = Invoice::findOrFail($validated['invoice_id']);
@@ -56,7 +56,7 @@ class BoxController extends Controller
             'box_code' => $validated['box_code'],
             'invoice_id' => $invoice->invoice_id,
             'vendor_id' => $vendorId,
-            'status' => $validated['status'] ?? 'pending',
+            'status' => $validated['status'] ?? 'not_scanned',
             'qr_text' => $this->buildBoxQrText($validated['box_code']),
         ]);
         AuditLogger::log($request->user()->user_id, 'CREATE_BOX', 'boxes', $box->box_id, 'Box created');
@@ -78,7 +78,7 @@ class BoxController extends Controller
             'invoice_id' => ['required', 'exists:invoices,invoice_id'],
             'vendor_id' => ['nullable', 'exists:vendors,vendor_id'],
             'vendor_name' => ['nullable', 'string', 'max:100'],
-            'status' => ['nullable', 'string', 'in:done,pending,match,less,mismatch,over'],
+            'status' => ['nullable', 'string', 'in:done,pending,not_scanned,match,less,mismatch,over'],
         ]);
 
         $invoice = Invoice::findOrFail($validated['invoice_id']);
@@ -89,7 +89,7 @@ class BoxController extends Controller
             'box_code' => $validated['box_code'],
             'invoice_id' => $invoice->invoice_id,
             'vendor_id' => $vendorId,
-            'status' => $validated['status'] ?? $box->status ?? 'pending',
+            'status' => $validated['status'] ?? $box->status ?? 'not_scanned',
             'qr_text' => $box->qr_text ?: $this->buildBoxQrText($validated['box_code']),
         ]);
         AuditLogger::log($request->user()->user_id, 'UPDATE_BOX', 'boxes', $box->box_id, 'Box updated');

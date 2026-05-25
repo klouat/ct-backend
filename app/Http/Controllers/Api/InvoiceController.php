@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Box;
+use App\Models\BoxItem;
 use App\Models\Invoice;
 use App\Models\User;
 use App\Models\Vendor;
@@ -17,7 +18,7 @@ class InvoiceController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Invoice::with(['boxes.vendor', 'boxes.items'])->orderByDesc('invoice_id');
+        $query = Invoice::with(['vendor', 'boxes.vendor', 'boxes.items'])->orderByDesc('invoice_id');
         $user = $request->user();
 
         if ($user->role === 'VENDOR' && $user->vendor_id) {
@@ -48,40 +49,47 @@ class InvoiceController extends Controller
         $validated = $request->validate([
             'invoice_code' => ['required', 'string', 'max:100', 'unique:invoices,invoice_code'],
             'po_number' => ['required', 'string', 'max:100', 'unique:invoices,po_number'],
-            'target_box_count' => ['required', 'integer', 'min:0'],
+            'target_box_count' => ['required', 'integer', 'min:1'],
             'estimated_arrival_date' => ['nullable', 'date'],
-            'manual_entries' => ['required', 'array', 'min:1'],
-            'manual_entries.*.box_id' => ['required', 'string', 'max:50'],
-            'manual_entries.*.item_name' => ['required', 'string', 'max:150'],
-            'manual_entries.*.quantity' => ['required', 'integer', 'min:1'],
-            'manual_entries.*.vendor' => ['nullable', 'string', 'max:100'],
-            'manual_entries.*.vendor_name' => ['nullable', 'string', 'max:100'],
-            'manual_entries.*.vendor_id' => ['nullable', 'integer', 'exists:vendors,vendor_id'],
+            'vendor' => ['nullable', 'string', 'max:100'],
+            'vendor_name' => ['nullable', 'string', 'max:100'],
+            'vendor_id' => ['nullable', 'integer', 'exists:vendors,vendor_id'],
+            'product_id' => ['required', 'string', 'max:100'],
+            'product_name' => ['required', 'string', 'max:150'],
         ]);
+        $vendorId = $this->resolveVendorId($request->user(), $validated, 'vendor');
 
-        $entries = $this->extractManualEntries($request, $validated);
-        $normalizedEntries = $this->normalizeEntries($request->user(), $entries);
-
-        $invoice = DB::transaction(function () use ($request, $validated, $normalizedEntries) {
+        $invoice = DB::transaction(function () use ($request, $validated, $vendorId) {
             $invoice = Invoice::create([
-                ...$validated,
-                'status' => 'terverifikasi',
+                'invoice_code' => $validated['invoice_code'],
+                'po_number' => $validated['po_number'],
+                'vendor_id' => $vendorId,
+                'product_id' => trim($validated['product_id']),
+                'product_name' => trim($validated['product_name']),
+                'qr_text' => $this->buildInvoiceQrText(
+                    trim($validated['invoice_code']),
+                    trim($validated['product_id']),
+                    $vendorId
+                ),
+                'target_box_count' => $validated['target_box_count'],
+                'scanned_box_count' => 0,
+                'last_scanned_at' => null,
+                'estimated_arrival_date' => $validated['estimated_arrival_date'] ?? null,
+                'status' => 'not_scanned',
             ]);
-            $boxesByCode = [];
 
-            foreach ($normalizedEntries as $entry) {
-                $box = $boxesByCode[$entry['box_code']] ?? $this->createOrAttachBox(
-                    invoice: $invoice,
-                    boxCode: $entry['box_code'],
-                    vendorId: $entry['vendor_id']
-                );
+            $boxes = $this->createInvoiceBoxes($invoice, $vendorId, (int) $validated['target_box_count']);
 
-                $boxesByCode[$entry['box_code']] = $box;
-
-                $box->items()->create([
-                    'sku' => $this->generateSku($invoice->invoice_code, $entry['box_code'], $entry['item_name'], $entry['quantity'], $entry['row_number']),
-                    'item_name' => $entry['item_name'],
-                    'quantity' => $entry['quantity'],
+            if ($boxes !== []) {
+                BoxItem::create([
+                    'box_id' => $boxes[0]->box_id,
+                    'sku' => $this->generateSku(
+                        $invoice->invoice_code,
+                        trim($validated['product_id']),
+                        trim($validated['product_name'])
+                    ),
+                    'item_name' => trim($validated['product_name']),
+                    'quantity' => (int) $validated['target_box_count'],
                 ]);
             }
 
@@ -91,7 +99,7 @@ class InvoiceController extends Controller
         });
 
         return $this->successResponse(
-            $invoice->load(['boxes.vendor', 'boxes.items']),
+            $invoice->load(['vendor', 'boxes.vendor', 'boxes.items']),
             'Invoice created successfully',
             201
         );
@@ -101,7 +109,7 @@ class InvoiceController extends Controller
     {
         $this->assertInvoiceAccess($request->user(), $invoice);
 
-        return $this->successResponse($invoice->load(['boxes.vendor', 'boxes.items']));
+        return $this->successResponse($invoice->load(['vendor', 'boxes.vendor', 'boxes.items']));
     }
 
     public function destroy(Request $request, Invoice $invoice): JsonResponse
@@ -114,107 +122,45 @@ class InvoiceController extends Controller
         return $this->successResponse(null, 'Invoice deleted successfully');
     }
 
-    private function createOrAttachBox(Invoice $invoice, string $boxCode, int $vendorId): Box
+    private function createInvoiceBoxes(Invoice $invoice, int $vendorId, int $boxCount): array
     {
-        $box = Box::withTrashed()->where('box_code', $boxCode)->first();
+        $boxes = [];
 
-        if ($box && $box->invoice_id !== null && $box->invoice_id !== $invoice->invoice_id) {
-            throw ValidationException::withMessages([
-                'manual_entries' => ["Box code {$boxCode} is already assigned to another invoice."],
-            ]);
-        }
+        for ($index = 1; $index <= $boxCount; $index++) {
+            $boxCode = sprintf('%s-BOX-%03d', strtoupper($invoice->invoice_code), $index);
+            $existingBox = Box::withTrashed()->where('box_code', $boxCode)->first();
 
-        if ($box && $box->vendor_id !== null && $box->vendor_id !== $vendorId) {
-            throw ValidationException::withMessages([
-                'manual_entries' => ["Box code {$boxCode} is already assigned to a different vendor."],
-            ]);
-        }
+            if ($existingBox && $existingBox->trashed()) {
+                $existingBox->restore();
+            }
 
-        if ($box && $box->trashed()) {
-            $box->restore();
-        }
-
-        if (! $box) {
-            return Box::create([
-                'box_code' => $boxCode,
-                'invoice_id' => $invoice->invoice_id,
-                'vendor_id' => $vendorId,
-                'status' => 'pending',
-                'qr_text' => $this->buildBoxQrText($boxCode),
-            ]);
-        }
-
-        $box->update([
-            'invoice_id' => $invoice->invoice_id,
-            'vendor_id' => $vendorId,
-            'status' => $box->status ?: 'pending',
-            'qr_text' => $box->qr_text ?: $this->buildBoxQrText($boxCode),
-        ]);
-
-        return $box->fresh();
-    }
-
-    private function extractManualEntries(Request $request, array $validated): array
-    {
-        $entries = $validated['manual_entries'] ?? $request->input('boxes', $request->input('items', []));
-
-        if (! is_array($entries) || $entries === []) {
-            throw ValidationException::withMessages([
-                'manual_entries' => ['At least one manual entry row is required.'],
-            ]);
-        }
-
-        return $entries;
-    }
-
-    private function normalizeEntries(User $user, array $entries): array
-    {
-        $normalizedEntries = [];
-        $vendorByBoxCode = [];
-
-        foreach ($entries as $index => $entry) {
-            $entryKey = 'manual_entries.'.$index;
-            $boxCode = trim((string) ($entry['box_code'] ?? $entry['box_id'] ?? ''));
-            $itemName = trim((string) ($entry['item_name'] ?? ''));
-            $quantity = $entry['quantity'] ?? null;
-
-            if ($boxCode === '') {
+            if ($existingBox && $existingBox->invoice_id !== null && $existingBox->invoice_id !== $invoice->invoice_id) {
                 throw ValidationException::withMessages([
-                    $entryKey.'.box_code' => ['BOX ID is required.'],
+                    'invoice_code' => ["Generated box code {$boxCode} is already assigned to another invoice."],
                 ]);
             }
 
-            if ($itemName === '') {
-                throw ValidationException::withMessages([
-                    $entryKey.'.item_name' => ['Item name is required.'],
+            if (! $existingBox) {
+                $existingBox = Box::create([
+                    'box_code' => $boxCode,
+                    'invoice_id' => $invoice->invoice_id,
+                    'vendor_id' => $vendorId,
+                    'status' => 'not_scanned',
+                    'qr_text' => null,
+                ]);
+            } else {
+                $existingBox->update([
+                    'invoice_id' => $invoice->invoice_id,
+                    'vendor_id' => $vendorId,
+                    'status' => $existingBox->status ?: 'not_scanned',
+                    'qr_text' => null,
                 ]);
             }
 
-            if (! is_numeric($quantity) || (int) $quantity < 1) {
-                throw ValidationException::withMessages([
-                    $entryKey.'.quantity' => ['Quantity must be an integer greater than 0.'],
-                ]);
-            }
-
-            $vendorId = $this->resolveVendorId($user, $entry, $entryKey);
-
-            if (isset($vendorByBoxCode[$boxCode]) && $vendorByBoxCode[$boxCode] !== $vendorId) {
-                throw ValidationException::withMessages([
-                    $entryKey.'.vendor' => ['The same BOX ID cannot be submitted with different vendors.'],
-                ]);
-            }
-
-            $vendorByBoxCode[$boxCode] = $vendorId;
-            $normalizedEntries[] = [
-                'box_code' => $boxCode,
-                'item_name' => $itemName,
-                'quantity' => (int) $quantity,
-                'vendor_id' => $vendorId,
-                'row_number' => $index + 1,
-            ];
+            $boxes[] = $existingBox->fresh();
         }
 
-        return $normalizedEntries;
+        return $boxes;
     }
 
     private function resolveVendorId(User $user, array $entry, string $entryKey): int
@@ -267,23 +213,27 @@ class InvoiceController extends Controller
         }
     }
 
-    private function buildBoxQrText(string $boxCode): string
+    private function buildInvoiceQrText(string $invoiceCode, string $productId, int $vendorId): string
     {
-        return 'BOX:'.$boxCode;
+        return sprintf(
+            'INV:%s|PRODUCT:%s|VENDOR:%d',
+            strtoupper($invoiceCode),
+            strtoupper($productId),
+            $vendorId
+        );
     }
 
-    private function generateSku(string $invoiceCode, string $boxCode, string $itemName, int $quantity, int $rowNumber): string
+    private function generateSku(string $invoiceCode, string $productId, string $productName): string
     {
         $invoiceFragment = strtoupper(substr(preg_replace('/[^A-Za-z0-9]+/', '', $invoiceCode) ?: 'INV', 0, 24));
-        $itemFragment = strtoupper(substr(preg_replace('/[^A-Za-z0-9]+/', '', $itemName) ?: 'ITEM', 0, 24));
+        $productIdFragment = strtoupper(substr(preg_replace('/[^A-Za-z0-9]+/', '', $productId) ?: 'PRODUCT', 0, 24));
+        $productNameFragment = strtoupper(substr(preg_replace('/[^A-Za-z0-9]+/', '', $productName) ?: 'ITEM', 0, 24));
 
         return sprintf(
-            'SKU-%s-%s-%s-%d-%d',
+            'SKU-%s-%s-%s',
             $invoiceFragment,
-            strtoupper($boxCode),
-            $itemFragment,
-            $quantity,
-            $rowNumber
+            $productIdFragment,
+            $productNameFragment
         );
     }
 

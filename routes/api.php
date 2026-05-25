@@ -47,6 +47,8 @@ Route::middleware('auth:api')->group(function () {
 
     Route::middleware('role:ADMIN|OPERATOR')->group(function () {
         Route::post('/scan', [ScanController::class, 'scan'])->middleware('throttle:30,1');
+        Route::post('/scan/invoices/{invoice}/pending', [ScanController::class, 'markPending'])->middleware('throttle:30,1');
+        Route::post('/scan/invoices/{invoice}/complete', [ScanController::class, 'complete'])->middleware('throttle:30,1');
         Route::post('/packages/{package}/count', [CountingController::class, 'store']);
     });
 
