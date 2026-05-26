@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::dropIfExists('packages');
         Schema::dropIfExists('shipment_locations');
         Schema::dropIfExists('shipments');
-        Schema::dropIfExists('failed_jobs');
     }
 
     public function down(): void
@@ -68,16 +67,6 @@ return new class extends Migration
             $table->foreignId('package_id')->constrained('packages', 'package_id')->cascadeOnDelete();
             $table->unsignedInteger('counted_qty');
             $table->timestamp('counted_time')->useCurrent();
-        });
-
-        Schema::create('failed_jobs', function (Blueprint $table) {
-            $table->id();
-            $table->string('uuid')->unique();
-            $table->text('connection');
-            $table->text('queue');
-            $table->longText('payload');
-            $table->longText('exception');
-            $table->timestamp('failed_at')->useCurrent();
         });
     }
 };
