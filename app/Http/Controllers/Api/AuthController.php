@@ -75,6 +75,7 @@ class AuthController extends Controller
         }
 
         $token = auth('api')->login($user);
+        AuditLogger::log($user->user_id, 'LOGIN', 'users', $user->user_id, 'User logged in');
 
         return $this->tokenResponse($token, 'Login successful');
     }

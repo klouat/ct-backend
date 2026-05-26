@@ -25,6 +25,10 @@ class Invoice extends Model
         'status',
         'target_box_count',
         'scanned_box_count',
+        'match_box_count',
+        'pending_box_count',
+        'less_box_count',
+        'over_box_count',
         'last_scanned_at',
         'estimated_arrival_date',
     ];
@@ -34,6 +38,10 @@ class Invoice extends Model
         return [
             'target_box_count' => 'integer',
             'scanned_box_count' => 'integer',
+            'match_box_count' => 'integer',
+            'pending_box_count' => 'integer',
+            'less_box_count' => 'integer',
+            'over_box_count' => 'integer',
             'last_scanned_at' => 'datetime',
             'estimated_arrival_date' => 'date',
             'created_at' => 'datetime',

@@ -37,6 +37,8 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/audit-logs', [AuditLogController::class, 'index']);
     });
 
+    Route::post('/audit-logs/activity', [AuditLogController::class, 'storeActivity']);
+
     Route::middleware('role:ADMIN|VENDOR')->group(function () {
         Route::apiResource('invoices', InvoiceController::class)->only(['index', 'store', 'show', 'destroy']);
         Route::apiResource('shipments', ShipmentController::class);

@@ -21,6 +21,10 @@ class HistoryController extends Controller
             $query->where('vendor_id', $user->vendor_id);
         }
 
+        if ($request->filled('vendor_id')) {
+            $query->where('vendor_id', $request->integer('vendor_id'));
+        }
+
         if ($request->filled('search')) {
             $search = trim((string) $request->string('search'));
 
@@ -66,11 +70,17 @@ class HistoryController extends Controller
             'quantity' => (int) $invoice->target_box_count,
             'box_quantity' => (int) $invoice->target_box_count,
             'scanned_box_count' => (int) $invoice->scanned_box_count,
+            'match_box_count' => (int) $invoice->match_box_count,
+            'pending_box_count' => (int) $invoice->pending_box_count,
+            'less_box_count' => (int) $invoice->less_box_count,
+            'over_box_count' => (int) $invoice->over_box_count,
             'location' => $latestLocation?->location_name,
             'status' => $status,
             'vendor_name' => $invoice->vendor?->vendor_name,
             'qr_text' => $invoice->qr_text,
             'recorded_at' => $latestLocation?->recorded_at,
+            'last_scanned_at' => $invoice->last_scanned_at?->toIso8601String(),
+            'created_at' => $invoice->created_at?->toIso8601String(),
         ];
     }
 
