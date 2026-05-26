@@ -33,7 +33,6 @@ class AuditLogController extends Controller
         $validated = $request->validate([
             'action' => ['required', 'string', 'max:100'],
             'table_name' => ['required', 'string', 'max:100'],
-            'record_id' => ['nullable', 'integer'],
             'description' => ['nullable', 'string', 'max:255'],
         ]);
 
@@ -41,7 +40,6 @@ class AuditLogController extends Controller
             'user_id' => $request->user()?->user_id,
             'action' => $validated['action'],
             'table_name' => $validated['table_name'],
-            'record_id' => $validated['record_id'] ?? null,
             'description' => $validated['description'] ?? null,
         ]);
 

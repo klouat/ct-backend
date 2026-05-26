@@ -15,7 +15,6 @@ class AuditLog extends Model
         'user_id',
         'action',
         'table_name',
-        'record_id',
         'description',
     ];
 

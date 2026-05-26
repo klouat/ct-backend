@@ -17,7 +17,6 @@ class AuditLogger
             'user_id' => $userId,
             'action' => $action,
             'table_name' => $tableName,
-            'record_id' => $recordId,
             'description' => $description,
         ]);
     }

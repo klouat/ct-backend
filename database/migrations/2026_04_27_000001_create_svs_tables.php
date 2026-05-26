@@ -79,7 +79,6 @@ return new class extends Migration
             $table->foreignId('user_id')->nullable()->constrained('users', 'user_id')->nullOnDelete();
             $table->string('action', 100)->index();
             $table->string('table_name', 100);
-            $table->unsignedBigInteger('record_id')->nullable();
             $table->text('description')->nullable();
             $table->timestamp('created_at')->useCurrent();
         });
