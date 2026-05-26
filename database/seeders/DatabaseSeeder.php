@@ -4,8 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Box;
 use App\Models\Invoice;
-use App\Models\Package;
-use App\Models\Shipment;
 use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -54,14 +52,6 @@ class DatabaseSeeder extends Seeder
             'vendor_id' => $vendor->vendor_id,
         ]);
 
-        $shipment = Shipment::firstOrCreate([
-            'shipment_code' => 'SHIP-001',
-        ], [
-            'vendor_id' => $vendor->vendor_id,
-            'shipment_date' => now()->toDateString(),
-            'status' => 'PENDING',
-        ]);
-
         $invoice = Invoice::firstOrCreate([
             'po_number' => 'PO-001',
         ], [
@@ -76,15 +66,6 @@ class DatabaseSeeder extends Seeder
         ], [
             'invoice_id' => $invoice->invoice_id,
             'vendor_id' => $vendor->vendor_id,
-            'qr_text' => 'BOX:BOX-001',
-        ]);
-
-        Package::firstOrCreate([
-            'package_code' => 'PKG-001',
-        ], [
-            'box_id' => $box->box_id,
-            'qty' => 10,
-            'qr_text' => 'INV:PO-001|BOX:BOX-001|PKG:PKG-001',
         ]);
     }
 }

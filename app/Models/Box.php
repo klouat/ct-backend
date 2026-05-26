@@ -19,8 +19,6 @@ class Box extends Model
         'box_code',
         'invoice_id',
         'vendor_id',
-        'status',
-        'qr_text',
     ];
 
     protected function casts(): array

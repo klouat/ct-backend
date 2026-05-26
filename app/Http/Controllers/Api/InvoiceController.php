@@ -37,10 +37,6 @@ class InvoiceController extends Controller
             $query->whereDate('estimated_arrival_date', $request->date('estimated_arrival_date'));
         }
 
-        if ($request->filled('box_status')) {
-            $query->whereHas('boxes', fn ($boxQuery) => $boxQuery->where('status', trim((string) $request->string('box_status'))));
-        }
-
         return $this->paginatedResponse($query->paginate($this->perPage($request)));
     }
 
@@ -132,15 +128,11 @@ class InvoiceController extends Controller
                     'box_code' => $boxCode,
                     'invoice_id' => $invoice->invoice_id,
                     'vendor_id' => $vendorId,
-                    'status' => 'not_scanned',
-                    'qr_text' => null,
                 ]);
             } else {
                 $existingBox->update([
                     'invoice_id' => $invoice->invoice_id,
                     'vendor_id' => $vendorId,
-                    'status' => $existingBox->status ?: 'not_scanned',
-                    'qr_text' => null,
                 ]);
             }
 
