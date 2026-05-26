@@ -41,11 +41,6 @@ class Box extends Model
         return $this->belongsTo(Vendor::class, 'vendor_id', 'vendor_id');
     }
 
-    public function packages(): HasMany
-    {
-        return $this->hasMany(Package::class, 'box_id', 'box_id');
-    }
-
     public function items(): HasMany
     {
         return $this->hasMany(BoxItem::class, 'box_id', 'box_id');

@@ -64,16 +64,6 @@ class User extends Authenticatable implements JWTSubject
         return $this->belongsTo(Vendor::class, 'vendor_id', 'vendor_id');
     }
 
-    public function qrLogs(): HasMany
-    {
-        return $this->hasMany(QrLog::class, 'user_id', 'user_id');
-    }
-
-    public function scanLogs(): HasMany
-    {
-        return $this->hasMany(ScanLog::class, 'user_id', 'user_id');
-    }
-
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class, 'user_id', 'user_id');

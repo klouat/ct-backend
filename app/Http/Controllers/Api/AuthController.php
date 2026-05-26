@@ -14,7 +14,7 @@ class AuthController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth:api', ['except' => ['register', 'login', 'refresh']]);
+        $this->middleware('auth:api', ['except' => ['register', 'login']]);
     }
 
     /**
@@ -80,12 +80,6 @@ class AuthController extends Controller
         return $this->tokenResponse($token, 'Login successful');
     }
 
-    #[Endpoint(title: 'Current User', description: 'Get the currently authenticated user.')]
-    public function me(): JsonResponse
-    {
-        return $this->successResponse($this->transformUser(auth('api')->user()), 'Current user retrieved successfully');
-    }
-
     #[Endpoint(title: 'Logout', description: 'Invalidate the current JWT access token.')]
     public function logout(): JsonResponse
     {
@@ -93,15 +87,6 @@ class AuthController extends Controller
         auth('api')->logout();
 
         return $this->successResponse(null, 'Logged out successfully');
-    }
-
-    /**
-     * @unauthenticated
-     */
-    #[Endpoint(title: 'Refresh Token', description: 'Refresh a JWT access token and return a new token payload.')]
-    public function refresh(): JsonResponse
-    {
-        return $this->tokenResponse(auth('api')->refresh(), 'Token refreshed successfully');
     }
 
     private function tokenResponse(string $token, string $message): JsonResponse

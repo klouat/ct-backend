@@ -4,10 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
-use App\Models\Package as SvsPackage;
-use App\Models\ScanLog;
 use App\Support\AuditLogger;
-use App\Support\VerificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -73,29 +70,9 @@ class ScanController extends Controller
             ], 'Invoice scanned successfully');
         }
 
-        $package = SvsPackage::with(['box.invoice', 'box.vendor'])->where('qr_text', $validated['qr_text'])->firstOrFail();
-        $scanUserId = $validated['user_id'] ?? $actingUser?->user_id;
-
-        ScanLog::create([
-            'package_id' => $package->package_id,
-            'user_id' => $scanUserId,
-            'status' => 'SCANNED',
-        ]);
-
-        AuditLogger::log($actingUser?->user_id, 'SCAN_PACKAGE', 'scan_logs', $package->package_id, 'Package scanned');
-
-        return $this->successResponse([
-            'package' => [
-                'package_id' => $package->package_id,
-                'package_code' => $package->package_code,
-                'qr_text' => $package->qr_text,
-                'qty' => $package->qty,
-                'box_code' => $package->box->box_code,
-                'invoice_po_number' => $package->box->invoice?->po_number,
-                'vendor_name' => $package->box->vendor?->vendor_name,
-            ],
-            'verification' => VerificationService::package($package),
-        ], 'Package scanned successfully');
+        return $this->errorResponse('QR code was not found in invoice records.', [
+            'qr_text' => ['The scanned QR code does not match any invoice record.'],
+        ], 404);
     }
 
     public function markPending(Request $request, Invoice $invoice): JsonResponse

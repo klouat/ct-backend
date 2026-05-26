@@ -109,23 +109,6 @@ class InvoiceController extends Controller
         );
     }
 
-    public function show(Request $request, Invoice $invoice): JsonResponse
-    {
-        $this->assertInvoiceAccess($request->user(), $invoice);
-
-        return $this->successResponse($invoice->load(['vendor', 'boxes.vendor', 'boxes.items']));
-    }
-
-    public function destroy(Request $request, Invoice $invoice): JsonResponse
-    {
-        $this->assertInvoiceAccess($request->user(), $invoice);
-        $invoice->delete();
-
-        AuditLogger::log($request->user()->user_id, 'DELETE_INVOICE', 'invoices', $invoice->invoice_id, 'Invoice deleted');
-
-        return $this->successResponse(null, 'Invoice deleted successfully');
-    }
-
     private function createInvoiceBoxes(Invoice $invoice, int $vendorId, int $boxCount): array
     {
         $boxes = [];
@@ -202,19 +185,6 @@ class InvoiceController extends Controller
         }
 
         return (int) $vendor->vendor_id;
-    }
-
-    private function assertInvoiceAccess(User $user, Invoice $invoice): void
-    {
-        if ($user->role !== 'VENDOR') {
-            return;
-        }
-
-        $hasOwnedBox = $invoice->boxes()->where('vendor_id', $user->vendor_id)->exists();
-
-        if (! $hasOwnedBox) {
-            abort(403, 'Vendor users can only access their own invoice data.');
-        }
     }
 
     private function buildInvoiceQrText(string $invoiceCode, string $productId, int $vendorId): string

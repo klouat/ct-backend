@@ -31,11 +31,6 @@ class Vendor extends Model
         return $this->hasMany(User::class, 'vendor_id', 'vendor_id');
     }
 
-    public function shipments(): HasMany
-    {
-        return $this->hasMany(Shipment::class, 'vendor_id', 'vendor_id');
-    }
-
     public function boxes(): HasMany
     {
         return $this->hasMany(Box::class, 'vendor_id', 'vendor_id');
