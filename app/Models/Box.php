@@ -16,7 +16,6 @@ class Box extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'box_code',
         'invoice_id',
         'vendor_id',
     ];

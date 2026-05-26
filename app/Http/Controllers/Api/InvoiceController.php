@@ -78,20 +78,18 @@ class InvoiceController extends Controller
                 'status' => 'not_scanned',
             ]);
 
-            $boxes = $this->createInvoiceBoxes($invoice, $vendorId, (int) $validated['target_box_count']);
+            $box = $this->createInvoiceBox($invoice, $vendorId);
 
-            if ($boxes !== []) {
-                BoxItem::create([
-                    'box_id' => $boxes[0]->box_id,
-                    'sku' => $this->generateSku(
-                        $invoice->invoice_code,
-                        trim($validated['product_id']),
-                        trim($validated['product_name'])
-                    ),
-                    'item_name' => trim($validated['product_name']),
-                    'quantity' => (int) $validated['target_box_count'],
-                ]);
-            }
+            BoxItem::create([
+                'box_id' => $box->box_id,
+                'sku' => $this->generateSku(
+                    $invoice->invoice_code,
+                    trim($validated['product_id']),
+                    trim($validated['product_name'])
+                ),
+                'item_name' => trim($validated['product_name']),
+                'quantity' => (int) $validated['target_box_count'],
+            ]);
 
             AuditLogger::log($request->user()->user_id, 'CREATE_INVOICE', 'invoices', $invoice->invoice_id, 'Invoice created with box items');
 
@@ -105,41 +103,28 @@ class InvoiceController extends Controller
         );
     }
 
-    private function createInvoiceBoxes(Invoice $invoice, int $vendorId, int $boxCount): array
+    private function createInvoiceBox(Invoice $invoice, int $vendorId): Box
     {
-        $boxes = [];
+        $existingBox = Box::withTrashed()
+            ->where('invoice_id', $invoice->invoice_id)
+            ->first();
 
-        for ($index = 1; $index <= $boxCount; $index++) {
-            $boxCode = sprintf('%s-BOX-%03d', strtoupper($invoice->invoice_code), $index);
-            $existingBox = Box::withTrashed()->where('box_code', $boxCode)->first();
-
-            if ($existingBox && $existingBox->trashed()) {
-                $existingBox->restore();
-            }
-
-            if ($existingBox && $existingBox->invoice_id !== null && $existingBox->invoice_id !== $invoice->invoice_id) {
-                throw ValidationException::withMessages([
-                    'invoice_code' => ["Generated box code {$boxCode} is already assigned to another invoice."],
-                ]);
-            }
-
-            if (! $existingBox) {
-                $existingBox = Box::create([
-                    'box_code' => $boxCode,
-                    'invoice_id' => $invoice->invoice_id,
-                    'vendor_id' => $vendorId,
-                ]);
-            } else {
-                $existingBox->update([
-                    'invoice_id' => $invoice->invoice_id,
-                    'vendor_id' => $vendorId,
-                ]);
-            }
-
-            $boxes[] = $existingBox->fresh();
+        if ($existingBox && $existingBox->trashed()) {
+            $existingBox->restore();
         }
 
-        return $boxes;
+        if (! $existingBox) {
+            return Box::create([
+                'invoice_id' => $invoice->invoice_id,
+                'vendor_id' => $vendorId,
+            ]);
+        }
+
+        $existingBox->update([
+            'vendor_id' => $vendorId,
+        ]);
+
+        return $existingBox->fresh();
     }
 
     private function resolveVendorId(User $user, array $entry, string $entryKey): int

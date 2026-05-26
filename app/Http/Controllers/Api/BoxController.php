@@ -18,10 +18,6 @@ class BoxController extends Controller
             $query->where('vendor_id', $user->vendor_id);
         }
 
-        if ($request->filled('box_code')) {
-            $query->where('box_code', 'like', '%'.$request->string('box_code')->trim().'%');
-        }
-
         if ($request->filled('invoice_id')) {
             $query->where('invoice_id', $request->integer('invoice_id'));
         }
@@ -32,6 +28,7 @@ class BoxController extends Controller
 
         return $this->paginatedResponse($query->paginate($this->perPage($request)));
     }
+
     private function perPage(Request $request): int
     {
         return min((int) $request->integer('per_page', 20), 100);

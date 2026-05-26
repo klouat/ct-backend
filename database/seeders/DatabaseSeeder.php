@@ -62,9 +62,8 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $box = Box::firstOrCreate([
-            'box_code' => 'BOX-001',
-        ], [
             'invoice_id' => $invoice->invoice_id,
+        ], [
             'vendor_id' => $vendor->vendor_id,
         ]);
     }
