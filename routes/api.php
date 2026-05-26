@@ -35,6 +35,7 @@ Route::middleware('auth:api')->group(function () {
     Route::middleware('role:ADMIN')->group(function () {
         Route::apiResource('vendors', VendorController::class);
         Route::get('/audit-logs', [AuditLogController::class, 'index']);
+        Route::get('/audit-logs/users', [AuditLogController::class, 'searchUsers']);
     });
 
     Route::post('/audit-logs/activity', [AuditLogController::class, 'storeActivity']);

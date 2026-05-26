@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,8 +14,9 @@ class AuditLogController extends Controller
     {
         $query = AuditLog::with('user')->orderByDesc('audit_id');
 
-        if ($request->filled('user_id')) {
-            $query->where('user_id', $request->integer('user_id'));
+        if ($request->filled('username')) {
+            $username = trim((string) $request->string('username'));
+            $query->whereHas('user', fn ($userQuery) => $userQuery->where('username', 'like', '%'.$username.'%'));
         }
 
         if ($request->filled('action')) {
@@ -26,6 +28,28 @@ class AuditLogController extends Controller
         }
 
         return $this->paginatedResponse($query->paginate($this->perPage($request)));
+    }
+
+    public function searchUsers(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->string('search'));
+
+        $query = User::query()
+            ->select(['user_id', 'username', 'role'])
+            ->orderBy('username');
+
+        if ($search !== '') {
+            $query->where('username', 'like', '%'.$search.'%');
+        }
+
+        return $this->successResponse(
+            $query->limit(10)->get()->map(fn (User $user) => [
+                'user_id' => $user->user_id,
+                'username' => $user->username,
+                'role' => $user->role,
+            ])->all(),
+            'Audit log users loaded successfully'
+        );
     }
 
     public function storeActivity(Request $request): JsonResponse
