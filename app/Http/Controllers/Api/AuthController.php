@@ -27,8 +27,7 @@ class AuthController extends Controller
             'username' => ['required', 'string', 'max:50', 'unique:users,username'],
             'email' => ['required', 'string', 'email', 'max:150', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8'],
-            'role' => ['required', 'in:ADMIN,OPERATOR,VENDOR,DRIVER'],
-            'vendor_id' => ['nullable', 'exists:vendors,vendor_id'],
+            'role' => ['required', 'in:ADMIN,SUPERVISOR,PETUGAS_GUDANG'],
         ]);
 
         $user = User::create([
@@ -36,7 +35,7 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password_hash' => Hash::make($validated['password']),
             'role' => $validated['role'],
-            'vendor_id' => $validated['vendor_id'] ?? null,
+            'vendor_id' => null,
         ]);
 
         AuditLogger::log(

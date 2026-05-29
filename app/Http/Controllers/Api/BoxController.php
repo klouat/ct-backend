@@ -12,11 +12,6 @@ class BoxController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = Box::with(['invoice', 'vendor', 'items'])->orderByDesc('box_id');
-        $user = $request->user();
-
-        if ($user->role === 'VENDOR' && $user->vendor_id) {
-            $query->where('vendor_id', $user->vendor_id);
-        }
 
         if ($request->filled('invoice_id')) {
             $query->where('invoice_id', $request->integer('invoice_id'));

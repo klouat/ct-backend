@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\Vendor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -12,22 +11,18 @@ class AuthTest extends TestCase
 
     public function test_user_can_register(): void
     {
-        $vendor = Vendor::create([
-            'vendor_name' => 'Acme Vendor',
-        ]);
-
         $response = $this->postJson('/api/auth/register', [
-            'username' => 'vendor02',
+            'username' => 'supervisor02',
+            'email' => 'supervisor02@example.com',
             'password' => 'password123',
-            'role' => 'VENDOR',
-            'vendor_id' => $vendor->vendor_id,
+            'role' => 'SUPERVISOR',
         ]);
 
         $response
             ->assertCreated()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.user.username', 'vendor02')
-            ->assertJsonPath('data.user.role', 'VENDOR');
+            ->assertJsonPath('data.user.username', 'supervisor02')
+            ->assertJsonPath('data.user.role', 'SUPERVISOR');
     }
 
     public function test_user_can_login(): void

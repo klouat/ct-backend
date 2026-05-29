@@ -21,10 +21,6 @@ class InvoiceController extends Controller
         $query = Invoice::with(['vendor', 'boxes.vendor', 'boxes.items'])->orderByDesc('invoice_id');
         $user = $request->user();
 
-        if ($user->role === 'VENDOR' && $user->vendor_id) {
-            $query->whereHas('boxes', fn ($boxQuery) => $boxQuery->where('vendor_id', $user->vendor_id));
-        }
-
         if ($request->filled('po_number')) {
             $query->where('po_number', 'like', '%'.$request->string('po_number')->trim().'%');
         }
@@ -129,10 +125,6 @@ class InvoiceController extends Controller
 
     private function resolveVendorId(User $user, array $entry, string $entryKey): int
     {
-        if ($user->role === 'VENDOR' && $user->vendor_id) {
-            return (int) $user->vendor_id;
-        }
-
         if (isset($entry['vendor_id'])) {
             $vendor = Vendor::find($entry['vendor_id']);
 

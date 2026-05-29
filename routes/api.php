@@ -17,25 +17,22 @@ Route::middleware('auth:api')->group(function () {
 
     Route::middleware('role:ADMIN')->group(function () {
         Route::get('/vendors', [VendorController::class, 'index']);
-        Route::get('/audit-logs', [AuditLogController::class, 'index']);
-        Route::get('/audit-logs/users', [AuditLogController::class, 'searchUsers']);
-    });
-
-    Route::post('/audit-logs/activity', [AuditLogController::class, 'storeActivity']);
-
-    Route::middleware('role:ADMIN|VENDOR')->group(function () {
-        Route::get('/invoices', [InvoiceController::class, 'index']);
         Route::post('/invoices', [InvoiceController::class, 'store']);
         Route::get('/boxes', [BoxController::class, 'index']);
     });
 
-    Route::middleware('role:ADMIN|OPERATOR')->group(function () {
+    Route::post('/audit-logs/activity', [AuditLogController::class, 'storeActivity']);
+
+    Route::middleware('role:ADMIN|SUPERVISOR')->group(function () {
+        Route::get('/audit-logs', [AuditLogController::class, 'index']);
+        Route::get('/audit-logs/users', [AuditLogController::class, 'searchUsers']);
+        Route::get('/history', [HistoryController::class, 'index']);
+    });
+
+    Route::middleware('role:ADMIN|PETUGAS_GUDANG')->group(function () {
+        Route::get('/invoices', [InvoiceController::class, 'index']);
         Route::post('/scan', [ScanController::class, 'scan'])->middleware('throttle:30,1');
         Route::post('/scan/invoices/{invoice}/pending', [ScanController::class, 'markPending'])->middleware('throttle:30,1');
         Route::post('/scan/invoices/{invoice}/complete', [ScanController::class, 'complete'])->middleware('throttle:30,1');
-    });
-
-    Route::middleware('role:ADMIN|OPERATOR|VENDOR')->group(function () {
-        Route::get('/history', [HistoryController::class, 'index']);
     });
 });

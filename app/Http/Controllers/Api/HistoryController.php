@@ -11,15 +11,10 @@ class HistoryController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
         $query = Invoice::with([
             'vendor',
             'boxes.locations',
         ])->orderByDesc('invoice_id');
-
-        if ($user->role === 'VENDOR' && $user->vendor_id) {
-            $query->where('vendor_id', $user->vendor_id);
-        }
 
         if ($request->filled('vendor_id')) {
             $query->where('vendor_id', $request->integer('vendor_id'));

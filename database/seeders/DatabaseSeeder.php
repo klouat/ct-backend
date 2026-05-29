@@ -23,33 +23,28 @@ class DatabaseSeeder extends Seeder
         User::updateOrCreate([
             'username' => 'admin',
         ], [
+            'email' => 'admin@example.com',
             'password_hash' => Hash::make('password123'),
             'role' => 'ADMIN',
             'vendor_id' => null,
         ]);
 
         User::updateOrCreate([
-            'username' => 'vendor01',
+            'username' => 'supervisor01',
         ], [
+            'email' => 'supervisor01@example.com',
             'password_hash' => Hash::make('password123'),
-            'role' => 'VENDOR',
-            'vendor_id' => $vendor->vendor_id,
-        ]);
-
-        User::updateOrCreate([
-            'username' => 'operator01',
-        ], [
-            'password_hash' => Hash::make('password123'),
-            'role' => 'OPERATOR',
+            'role' => 'SUPERVISOR',
             'vendor_id' => null,
         ]);
 
         User::updateOrCreate([
-            'username' => 'driver01',
+            'username' => 'petugasgudang01',
         ], [
+            'email' => 'petugasgudang01@example.com',
             'password_hash' => Hash::make('password123'),
-            'role' => 'DRIVER',
-            'vendor_id' => $vendor->vendor_id,
+            'role' => 'PETUGAS_GUDANG',
+            'vendor_id' => null,
         ]);
 
         $invoice = Invoice::firstOrCreate([
