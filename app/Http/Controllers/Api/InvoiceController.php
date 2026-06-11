@@ -39,7 +39,12 @@ class InvoiceController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'invoice_code' => ['required', 'string', 'max:100', 'unique:invoices,invoice_code'],
+            'invoice_code' => [
+                'required', 'string', 'max:100',
+                \Illuminate\Validation\Rule::unique('invoices')->where(function ($query) use ($request) {
+                    return $query->where('product_id', $request->product_id);
+                })
+            ],
             'po_number' => ['required', 'string', 'max:100', 'unique:invoices,po_number'],
             'target_box_count' => ['required', 'integer', 'min:1'],
             'estimated_arrival_date' => ['nullable', 'date'],

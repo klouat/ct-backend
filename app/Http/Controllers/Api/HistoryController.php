@@ -56,6 +56,16 @@ class HistoryController extends Controller
             ->sortByDesc('recorded_at')
             ->first();
         $status = strtoupper((string) ($invoice->status ?? 'not_scanned'));
+        $vendorName = $invoice->vendor?->vendor_name ?? 'Unknown';
+
+        $locationLabel = $latestLocation?->location_name;
+        if (!$locationLabel) {
+            if ($invoice->scanned_box_count > 0) {
+                $locationLabel = 'Gudang Epson';
+            } else {
+                $locationLabel = 'Gudang ' . $vendorName;
+            }
+        }
 
         return [
             'invoice_id' => $invoice->invoice_id,
@@ -69,7 +79,7 @@ class HistoryController extends Controller
             'pending_box_count' => (int) $invoice->pending_box_count,
             'less_box_count' => (int) $invoice->less_box_count,
             'over_box_count' => (int) $invoice->over_box_count,
-            'location' => $latestLocation?->location_name,
+            'location' => $locationLabel,
             'status' => $status,
             'vendor_name' => $invoice->vendor?->vendor_name,
             'qr_text' => $invoice->qr_text,
