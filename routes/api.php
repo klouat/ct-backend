@@ -33,6 +33,7 @@ Route::middleware('auth:api')->group(function () {
     Route::middleware('role:ADMIN|PETUGAS_GUDANG')->group(function () {
         Route::get('/invoices', [InvoiceController::class, 'index']);
         Route::post('/scan', [ScanController::class, 'scan'])->middleware('throttle:30,1');
+        Route::post('/scan/invoices/{invoice}/confirm', [ScanController::class, 'confirm'])->middleware('throttle:30,1');
         Route::post('/scan/invoices/{invoice}/pending', [ScanController::class, 'markPending'])->middleware('throttle:30,1');
         Route::post('/scan/invoices/{invoice}/complete', [ScanController::class, 'complete'])->middleware('throttle:30,1');
     });
