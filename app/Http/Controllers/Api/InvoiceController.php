@@ -40,7 +40,7 @@ class InvoiceController extends Controller
     {
         $user = $request->user();
 
-        $query = Invoice::query()
+        $query = Invoice::with('vendor')
             ->where('vendor_id', $user->vendor_id)
             ->select([
                 'invoice_id',
@@ -51,7 +51,8 @@ class InvoiceController extends Controller
                 'qr_text',
                 'target_box_count',
                 'estimated_arrival_date',
-                'status'
+                'status',
+                'vendor_id',
             ])
             ->orderByDesc('invoice_id');
 
@@ -63,7 +64,15 @@ class InvoiceController extends Controller
             $query->where('invoice_code', 'like', '%'.$request->string('invoice_code')->trim().'%');
         }
 
-        return $this->paginatedResponse($query->paginate($this->perPage($request)));
+        $paginator = $query->paginate($this->perPage($request));
+
+        $paginator->getCollection()->transform(function (Invoice $invoice) {
+            $invoice->vendor_name = $invoice->vendor?->vendor_name;
+            unset($invoice->vendor, $invoice->vendor_id);
+            return $invoice;
+        });
+
+        return $this->paginatedResponse($paginator);
     }
 
     public function store(Request $request): JsonResponse
