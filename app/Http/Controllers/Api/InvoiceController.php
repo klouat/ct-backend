@@ -50,7 +50,8 @@ class InvoiceController extends Controller
                 'product_name',
                 'qr_text',
                 'target_box_count',
-                'estimated_arrival_date'
+                'estimated_arrival_date',
+                'status'
             ])
             ->orderByDesc('invoice_id');
 
@@ -96,11 +97,7 @@ class InvoiceController extends Controller
                 'vendor_id' => $vendorId,
                 'product_id' => trim($validated['product_id']),
                 'product_name' => trim($validated['product_name']),
-                'qr_text' => $this->buildInvoiceQrText(
-                    trim($validated['invoice_code']),
-                    trim($validated['product_id']),
-                    $vendorId
-                ),
+                'qr_text' => null,
                 'target_box_count' => $validated['target_box_count'],
                 'scanned_box_count' => 0,
                 'match_box_count' => 0,
@@ -109,7 +106,7 @@ class InvoiceController extends Controller
                 'over_box_count' => 0,
                 'last_scanned_at' => null,
                 'estimated_arrival_date' => $validated['estimated_arrival_date'] ?? null,
-                'status' => 'not_scanned',
+                'status' => 'pending_vendor_approval',
             ]);
 
             $box = $this->createInvoiceBox($invoice, $vendorId);
@@ -135,6 +132,62 @@ class InvoiceController extends Controller
             'Invoice created successfully',
             201
         );
+    }
+
+    public function accept(Request $request, Invoice $invoice): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($invoice->vendor_id !== $user->vendor_id) {
+            return $this->errorResponse('Forbidden', [], 403);
+        }
+
+        if ($invoice->status !== 'pending_vendor_approval') {
+            return $this->errorResponse('Invoice is not pending approval', [], 400);
+        }
+
+        $qrText = $this->buildInvoiceQrText(
+            $invoice->invoice_code,
+            $invoice->product_id,
+            $invoice->vendor_id
+        );
+
+        $invoice->update([
+            'status' => 'not_scanned',
+            'qr_text' => $qrText,
+        ]);
+
+        AuditLogger::log($user->user_id, 'ACCEPT_INVOICE', 'invoices', $invoice->invoice_id, 'Vendor accepted invoice and QR generated');
+
+        return $this->successResponse([
+            'invoice_id' => $invoice->invoice_id,
+            'status' => $invoice->status,
+            'qr_text' => $invoice->qr_text,
+        ], 'Invoice accepted successfully');
+    }
+
+    public function reject(Request $request, Invoice $invoice): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($invoice->vendor_id !== $user->vendor_id) {
+            return $this->errorResponse('Forbidden', [], 403);
+        }
+
+        if ($invoice->status !== 'pending_vendor_approval') {
+            return $this->errorResponse('Invoice is not pending approval', [], 400);
+        }
+
+        $invoice->update([
+            'status' => 'rejected_by_vendor',
+        ]);
+
+        AuditLogger::log($user->user_id, 'REJECT_INVOICE', 'invoices', $invoice->invoice_id, 'Vendor rejected invoice');
+
+        return $this->successResponse([
+            'invoice_id' => $invoice->invoice_id,
+            'status' => $invoice->status,
+        ], 'Invoice rejected successfully');
     }
 
     private function createInvoiceBox(Invoice $invoice, int $vendorId): Box

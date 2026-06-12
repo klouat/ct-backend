@@ -19,6 +19,18 @@ class VendorController extends Controller
 
         return $this->paginatedResponse($query->paginate($this->perPage($request)));
     }
+    public function publicList(Request $request): JsonResponse
+    {
+        $vendors = Vendor::query()
+            ->select('vendor_id', 'vendor_name')
+            ->orderBy('vendor_name')
+            ->get();
+
+        return $this->successResponse([
+            'items' => $vendors
+        ], 'Vendor options loaded successfully');
+    }
+
     private function perPage(Request $request): int
     {
         return min((int) $request->integer('per_page', 20), 100);

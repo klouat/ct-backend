@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+Route::get('/public/vendors', [VendorController::class, 'publicList']);
 
 Route::middleware('auth:api')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -38,5 +39,7 @@ Route::middleware('auth:api')->group(function () {
 
     Route::middleware('role:VENDOR')->group(function () {
         Route::get('/qr-preview', [InvoiceController::class, 'qrPreview']);
+        Route::post('/invoices/{invoice}/accept', [InvoiceController::class, 'accept']);
+        Route::post('/invoices/{invoice}/reject', [InvoiceController::class, 'reject']);
     });
 });
