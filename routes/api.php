@@ -35,4 +35,8 @@ Route::middleware('auth:api')->group(function () {
         Route::post('/scan/invoices/{invoice}/pending', [ScanController::class, 'markPending'])->middleware('throttle:30,1');
         Route::post('/scan/invoices/{invoice}/complete', [ScanController::class, 'complete'])->middleware('throttle:30,1');
     });
+
+    Route::middleware('role:VENDOR')->group(function () {
+        Route::get('/qr-preview', [InvoiceController::class, 'qrPreview']);
+    });
 });

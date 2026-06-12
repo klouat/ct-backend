@@ -36,6 +36,35 @@ class InvoiceController extends Controller
         return $this->paginatedResponse($query->paginate($this->perPage($request)));
     }
 
+    public function qrPreview(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $query = Invoice::query()
+            ->where('vendor_id', $user->vendor_id)
+            ->select([
+                'invoice_id',
+                'invoice_code',
+                'po_number',
+                'product_id',
+                'product_name',
+                'qr_text',
+                'target_box_count',
+                'estimated_arrival_date'
+            ])
+            ->orderByDesc('invoice_id');
+
+        if ($request->filled('po_number')) {
+            $query->where('po_number', 'like', '%'.$request->string('po_number')->trim().'%');
+        }
+
+        if ($request->filled('invoice_code')) {
+            $query->where('invoice_code', 'like', '%'.$request->string('invoice_code')->trim().'%');
+        }
+
+        return $this->paginatedResponse($query->paginate($this->perPage($request)));
+    }
+
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
