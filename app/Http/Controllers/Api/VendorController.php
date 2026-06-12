@@ -82,7 +82,7 @@ class VendorController extends Controller
         $vendor_name = $vendor->vendor_name;
         $vendor_id   = $vendor->vendor_id;
 
-        $vendor->delete();
+        $vendor->forceDelete();
 
         AuditLogger::log(
             $request->user()?->user_id,
