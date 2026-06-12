@@ -51,11 +51,12 @@ class InvoiceController extends Controller
             'vendor' => ['nullable', 'string', 'max:100'],
             'vendor_name' => ['nullable', 'string', 'max:100'],
             'vendor_id' => ['nullable', 'integer', 'exists:vendors,vendor_id'],
-            'product_id' => ['required', 'string', 'max:100'],
+            'product_id' => ['required', 'string', 'max:100', 'unique:invoices,product_id'],
             'product_name' => ['required', 'string', 'max:150'],
         ], [
             'invoice_code.unique' => 'Product ID already exists',
             'po_number.unique' => 'Invoice ID already exists',
+            'product_id.unique' => 'Product ID already exists',
         ]);
         $vendorId = $this->resolveVendorId($request->user(), $validated, 'vendor');
 
