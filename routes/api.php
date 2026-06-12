@@ -18,6 +18,9 @@ Route::middleware('auth:api')->group(function () {
 
     Route::middleware('role:ADMIN')->group(function () {
         Route::get('/vendors', [VendorController::class, 'index']);
+        Route::post('/vendors', [VendorController::class, 'store']);
+        Route::put('/vendors/{vendor}', [VendorController::class, 'update']);
+        Route::delete('/vendors/{vendor}', [VendorController::class, 'destroy']);
         Route::post('/invoices', [InvoiceController::class, 'store']);
         Route::get('/boxes', [BoxController::class, 'index']);
     });
