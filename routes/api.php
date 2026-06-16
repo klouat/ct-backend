@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BoxController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\ScanController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VendorController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,6 +18,11 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
 
     Route::middleware('role:ADMIN')->group(function () {
+        Route::get('/users', [UserController::class, 'index']);
+        Route::post('/users', [UserController::class, 'store']);
+        Route::get('/users/{user}', [UserController::class, 'show']);
+        Route::put('/users/{user}', [UserController::class, 'update']);
+        Route::delete('/users/{user}', [UserController::class, 'destroy']);
         Route::get('/vendors', [VendorController::class, 'index']);
         Route::post('/vendors', [VendorController::class, 'store']);
         Route::put('/vendors/{vendor}', [VendorController::class, 'update']);
