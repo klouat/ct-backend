@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AuthRefreshController;
 use App\Http\Controllers\Api\BoxController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\InvoiceController;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:10,1');
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+Route::post('/auth/refresh', AuthRefreshController::class)->middleware('throttle:20,1');
 Route::get('/public/vendors', [VendorController::class, 'publicList']);
 
 Route::middleware('auth:api')->group(function () {
