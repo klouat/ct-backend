@@ -25,7 +25,6 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/users/{user}', [UserController::class, 'show']);
         Route::put('/users/{user}', [UserController::class, 'update']);
         Route::delete('/users/{user}', [UserController::class, 'destroy']);
-        Route::get('/vendors', [VendorController::class, 'index']);
         Route::post('/vendors', [VendorController::class, 'store']);
         Route::put('/vendors/{vendor}', [VendorController::class, 'update']);
         Route::delete('/vendors/{vendor}', [VendorController::class, 'destroy']);
@@ -36,6 +35,7 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/audit-logs/activity', [AuditLogController::class, 'storeActivity']);
 
     Route::middleware('role:ADMIN|SUPERVISOR')->group(function () {
+        Route::get('/vendors', [VendorController::class, 'index']);
         Route::get('/audit-logs', [AuditLogController::class, 'index']);
         Route::get('/audit-logs/users', [AuditLogController::class, 'searchUsers']);
         Route::get('/history', [HistoryController::class, 'index']);
